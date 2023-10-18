@@ -1,7 +1,6 @@
 package com.unidbgtestdemo;
 
 import com.github.unidbg.*;
-import com.github.unidbg.arm.ARM;
 import com.github.unidbg.arm.HookStatus;
 import com.github.unidbg.hook.HookContext;
 import com.github.unidbg.hook.ReplaceCallback;
@@ -22,8 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 
-public class unidbgtestdemomain {
-//    public class unidbgtestdemomain implements Jni {
+public class unidbgtestdemomain extends AbstractJni {
     AndroidEmulator emulator;
     Memory memory;
     VM vm;
@@ -36,7 +34,7 @@ public class unidbgtestdemomain {
 
         vm = emulator.createDalvikVM(new File("unidbg-android/src/test/resources//unidbgtestdemo/app-debug.apk"));
         vm.setVerbose(true);
-//        vm.setJni(this);
+        vm.setJni(this);
 
         DalvikModule dm = vm.loadLibrary(new File("unidbg-android/src/test/resources/unidbgtestdemo/libnativetest.so"), true);
         module = dm.getModule();
@@ -78,9 +76,12 @@ public class unidbgtestdemomain {
         int sum = demoTest.callJniMethodInt(emulator, "myAdd(II)I", 1, 2);
         System.out.println("myAdd(1,2)=" + sum);
 
+        // ????
         demoTest = vm.resolveClass("com/netease/unidbgtestdemo/DemoTest").newObject("unidbg");
         demoTest = vm.resolveClass("com/netease/unidbgtestdemo/DemoTest").newObject(111);
-//        demoTest.
+
+        String name = jni.callStaticJniMethodObject(emulator, "usingRefJava()Ljava/lang/String;", vm.getJNIEnv(), null).toString();
+        print("name:" + name);
     }
 
     void hookZZ() {
@@ -169,7 +170,17 @@ public class unidbgtestdemomain {
     public static void main(String[] args) {
         unidbgtestdemomain main = new unidbgtestdemomain();
 //        main.hookTest();
-        main.patchCodeTest();
+//        main.patchCodeTest();
         main.functionCallTest();
     }
+
+    @Override
+    public DvmObject<?> callStaticObjectMethodV(BaseVM vm, DvmClass dvmClass, String signature, VaList vaList) {
+        switch (signature) {
+            case "android/app/ActivityThread->currentPackageName()Ljava/lang/String;":
+                return new StringObject(vm, "hello");
+        }
+        return super.callStaticObjectMethodV(vm, dvmClass, signature, vaList);
+    }
+
 }
