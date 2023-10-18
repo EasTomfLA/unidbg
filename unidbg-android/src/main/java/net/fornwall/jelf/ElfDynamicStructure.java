@@ -311,8 +311,10 @@ public class ElfDynamicStructure {
             }
         }
 
-        if (pltRelOffset > 0) {
-            int num_entries = pltRelSize / relEntrySize;
+        if (pltRelOffset > 0 && relEntrySize != 0) {
+            // modify by vik
+//        	if (pltRelOffset > 0) {
+				int num_entries = pltRelSize / relEntrySize;
             pltRel = MemoizedObject.uncheckedArray(num_entries);
             final long fileOffset = elfFile.virtualMemoryAddrToFileOffset(pltRelOffset);
             for (int i = 0; i < num_entries; i++) {

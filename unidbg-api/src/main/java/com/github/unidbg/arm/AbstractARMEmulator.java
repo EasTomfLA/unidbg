@@ -1,5 +1,7 @@
 package com.github.unidbg.arm;
 
+import capstone.Arm;
+import capstone.Capstone;
 import capstone.api.Disassembler;
 import capstone.api.DisassemblerFactory;
 import capstone.api.Instruction;
@@ -41,6 +43,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractEmulator<T> implements ARMEmulator<T> {
 
@@ -218,6 +222,18 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
             if (visitor != null) {
                 visitor.visit(sb, ins);
             }
+
+            // 打印每条汇编指令里参与运算的寄存器的值
+            Set<Integer> regset = new HashSet<Integer>();
+
+            Arm.OpInfo opInfo = (Arm.OpInfo) ins.getOperands();
+            for(int i = 0; i<opInfo.getOperands().length; i++){
+                regset.add(opInfo.getOperands()[i].value.reg);
+            }
+
+            String RegChange = ARM.SaveRegs(this, regset);
+            sb.append(RegChange);
+
             sb.append('\n');
             address += ins.getSize();
         }
@@ -258,4 +274,26 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
     public long getReturnAddress() {
         return LR;
     }
+
+    // 添加值显示
+//    private void printAssemble(PrintStream out, Capstone.CsInsn[] insns, long address, boolean thumb) {
+//        StringBuilder sb = new StringBuilder();
+//        for (Capstone.CsInsn ins : insns) {
+//            sb.append("### Trace Instruction ");
+//            sb.append(ARM.assembleDetail(this, ins, address, thumb));
+//            // 打印每条汇编指令里参与运算的寄存器的值
+//            Set<Integer> regset = new HashSet<Integer>();
+//
+//            Arm.OpInfo opInfo = (Arm.OpInfo) ins.operands;
+//            for(int i = 0; i<opInfo.op.length; i++){
+//                regset.add(opInfo.op[i].value.reg);
+//            }
+//
+//            String RegChange = ARM.SaveRegs(this, regset);
+//            sb.append(RegChange);
+//            sb.append('\n');
+//            address += ins.size;
+//        }
+//        out.print(sb);
+//    }
 }

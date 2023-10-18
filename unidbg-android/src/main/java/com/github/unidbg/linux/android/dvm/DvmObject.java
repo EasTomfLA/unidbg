@@ -17,7 +17,7 @@ public class DvmObject<T> extends Hashable {
     protected T value;
     private final BaseVM vm;
 
-    protected DvmObject(DvmClass objectType, T value) {
+    public DvmObject(DvmClass objectType, T value) {
         this(objectType == null ? null : objectType.vm, objectType, value);
     }
 

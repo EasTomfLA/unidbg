@@ -1,5 +1,8 @@
 package com.github.unidbg.arm;
 
+import capstone.Arm;
+import capstone.Arm64;
+import capstone.Capstone;
 import capstone.api.Disassembler;
 import capstone.api.DisassemblerFactory;
 import capstone.api.Instruction;
@@ -41,6 +44,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 public abstract class AbstractARM64Emulator<T extends NewFileIO> extends AbstractEmulator<T> implements ARMEmulator<T> {
 
@@ -204,14 +209,29 @@ public abstract class AbstractARM64Emulator<T extends NewFileIO> extends Abstrac
 
     private void printAssemble(PrintStream out, Instruction[] insns, long address, InstructionVisitor visitor) {
         StringBuilder sb = new StringBuilder();
-        for (Instruction ins : insns) {
-            sb.append(dateFormat.format(new Date())).append(" Trace Instruction ");
+//        for (Instruction ins : insns) {
+//            sb.append(dateFormat.format(new Date())).append("Trace Instruction ");
+//            sb.append(ARM.assembleDetail(this, ins, address, false));
+//            if (visitor != null) {
+//                visitor.visit(sb, ins);
+//            }
+//            sb.append('\n');
+//            address += ins.getSize();
+//        }
+
+        Capstone.CsInsn[] ss = (Capstone.CsInsn[])insns;
+        for (Capstone.CsInsn ins : ss) {
+            sb.append("Trace Instruction ");
             sb.append(ARM.assembleDetail(this, ins, address, false));
-            if (visitor != null) {
-                visitor.visit(sb, ins);
+            Set<Integer> regset = new HashSet<Integer>();
+            Arm64.OpInfo operands = (Arm64.OpInfo)ins.getOperands();
+            for (int i = 0; i < operands.operands.length; i++) {
+                regset.add(operands.operands[i].value.reg);
             }
+            String regChange = ARM.saveRegs64(this, regset);
+            sb.append(regChange);
             sb.append('\n');
-            address += ins.getSize();
+            address += ins.size;
         }
         out.print(sb);
     }
