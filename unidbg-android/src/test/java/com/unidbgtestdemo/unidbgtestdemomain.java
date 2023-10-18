@@ -179,6 +179,8 @@ public class unidbgtestdemomain extends AbstractJni {
         switch (signature) {
             case "android/app/ActivityThread->currentPackageName()Ljava/lang/String;":
                 return new StringObject(vm, "hello");
+            case "android/os/SystemProperties->get(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;":
+                return new StringObject(vm, "王德法");
         }
         return super.callStaticObjectMethodV(vm, dvmClass, signature, vaList);
     }
