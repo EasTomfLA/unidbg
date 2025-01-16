@@ -51,27 +51,38 @@ public class unidbgtestdemomain extends AbstractJni {
 //        DvmObject<?> stringFromJNI = jni.callStaticJniMethodObject(emulator, "stringFromJNI");
         DvmObject<?> stringFromJNI = jni.callStaticJniMethodObject(emulator, "stringFromJNI()Ljava/lang/String;");
         String ret = stringFromJNI.getValue().toString();
-        System.out.println(ret);
+        System.out.println("stringFromJNI ret:" + ret);
 
         // 动态注册需要指定函数签名
         DvmObject<?> stringFromJNIDyn = jni.callStaticJniMethodObject(emulator, "stringFromJNIDynReg()Ljava/lang/String;");
         String retDyn = stringFromJNIDyn.getValue().toString();
-        System.out.println(retDyn);
+        System.out.println("stringFromJNIDynReg ret:" +retDyn);
 
-        MemoryBlock malloc = memory.malloc(10, true);
-        UnidbgPointer strPoint = malloc.getPointer();
-        strPoint.write("hello".getBytes());
+        String str = "hello world";
+        StringObject ss = new StringObject(vm, str);
+        int getStringLen = jni.callStaticJniMethodInt(emulator, "getStringLen(Ljava/lang/String;)I", ss);
+        System.out.println("getStringLen(" + ss + ") ret:" + getStringLen);
+        str = "hello";
+        getStringLen = jni.callStaticJniMethodInt(emulator, "getStringLen(Ljava/lang/String;)I", str);
+        System.out.println("getStringLen(" + str + ") ret:" + getStringLen);
 
-//        int getStringLen = jni.callStaticJniMethodInt(emulator, "getStringLen(Ljava/lang/String;)I", new PointerNumber(strPoint));
-        int getStringLen = jni.callStaticJniMethodInt(emulator, "getStringLen(Ljava/lang/String;)I", "hello");
-        System.out.println(getStringLen);
+        callFunctionUsingExportSymbolOrOffset();
 
-        // 还可以直接指定偏移量进行调用
+        callMyAddUsingJniMethod();
+
+//        emulator.traceCode();
+//        String name = jni.callStaticJniMethodObject(emulator, "usingRefJava()Ljava/lang/String;", vm.getJNIEnv(), null).toString();
+//        print("name:" + name);
+    }
+    void callFunctionUsingExportSymbolOrOffset() {
 //        extern "C" JNIEXPORT void exportFunction()
         module.callFunction(emulator, "exportFunction");
+        // 还可以直接指定偏移量进行调用
         // static jint myAddNoExport(int n1, int n2)
-//        System.out.println("0xf9d8(1,2)=" + module.callFunction(emulator, 0xF9D8, 1, 2));
+//        System.out.println("myAddNoExport(1,2)=" + module.callFunction(emulator, 0xfec0, 1, 2).intValue());
+    }
 
+    void callMyAddUsingJniMethod() {
         DvmObject<?> demoTest = vm.resolveClass("com/netease/unidbgtestdemo/DemoTest").newObject(null);
         int sum = demoTest.callJniMethodInt(emulator, "myAdd(II)I", 1, 2);
         System.out.println("myAdd(1,2)=" + sum);
@@ -79,9 +90,6 @@ public class unidbgtestdemomain extends AbstractJni {
         // ????
         demoTest = vm.resolveClass("com/netease/unidbgtestdemo/DemoTest").newObject("unidbg");
         demoTest = vm.resolveClass("com/netease/unidbgtestdemo/DemoTest").newObject(111);
-
-        String name = jni.callStaticJniMethodObject(emulator, "usingRefJava()Ljava/lang/String;", vm.getJNIEnv(), null).toString();
-        print("name:" + name);
     }
 
     void hookZZ() {
@@ -89,7 +97,7 @@ public class unidbgtestdemomain extends AbstractJni {
         Symbol myAddImpl = module.findSymbolByName("_Z9myAddImplP7_JNIEnvP8_jobjectii");
         print("myAddImpl addr:"+myAddImpl.getAddress());
         // 调用顺序 onCall onCall(no context) postCall https://blog.csdn.net/Qiled/article/details/122149949
-        hook.replace(0x4000F7BC,
+        hook.replace(myAddImpl.getAddress(),
                 new ReplaceCallback() {
                     @Override
                     public HookStatus onCall(Emulator<?> emulator, long originFunction) {
@@ -125,9 +133,12 @@ public class unidbgtestdemomain extends AbstractJni {
 
     void patchCodeWithPointer() {
         // https://armconverter.com/
+        // ; myAddImpl(_JNIEnv *, _jobject *, int, int)
         // .text:000000000000F7D8 00 01 09 0B                 ADD             W0, W8, W9
         // ==> SUB   0001094B
-        UnidbgPointer pointer = UnidbgPointer.pointer(emulator, module.base + 0xf7d8);
+        Symbol myAddImpl = module.findSymbolByName("_Z9myAddImplP7_JNIEnvP8_jobjectii");
+        long l = module.base + myAddImpl.getAddress() + (0xfcc0 - 0xfca4);
+        UnidbgPointer pointer = UnidbgPointer.pointer(emulator, myAddImpl.getAddress() + (0xfcc0-0xfca4));
         if (pointer != null) {
             byte[] bytes = new byte[4];
             pointer.read(0, bytes, 0, 4);
@@ -163,13 +174,13 @@ public class unidbgtestdemomain extends AbstractJni {
     }
 
     void patchCodeTest() {
-//        patchCodeWithPointer();
+        patchCodeWithPointer();
 //        patchWithKeystore();
     }
 
     public static void main(String[] args) {
         unidbgtestdemomain main = new unidbgtestdemomain();
-//        main.hookTest();
+        main.hookTest();
 //        main.patchCodeTest();
         main.functionCallTest();
     }
