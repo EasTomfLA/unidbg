@@ -74,8 +74,8 @@ public class unidbgtestdemomain extends AbstractJni {
         callMyAddUsingJniMethod();
 
 //        emulator.traceCode();
-//        String name = jni.callStaticJniMethodObject(emulator, "usingRefJava()Ljava/lang/String;", vm.getJNIEnv(), null).toString();
-//        print("name:" + name);
+        String name = jni.callStaticJniMethodObject(emulator, "usingRefJava()Ljava/lang/String;", vm.getJNIEnv(), null).toString();
+        print("name:" + name);
     }
     void callFunctionUsingExportSymbolOrOffset() {
 //        extern "C" JNIEXPORT void exportFunction()
@@ -213,4 +213,22 @@ public class unidbgtestdemomain extends AbstractJni {
         return super.callStaticObjectMethodV(vm, dvmClass, signature, vaList);
     }
 
+    @Override
+    public DvmObject<?> callObjectMethodV(BaseVM vm, DvmObject<?> dvmObject, String signature, VaList vaList) {
+        switch (signature) {
+            case "android/app/ActivityThread->getApplication()Landroid/app/Application;":
+                return vm.resolveClass("android/app/Application").newObject(null);
+            case "android/app/Application->getApplicationContext()Landroid/content/Context;":
+                return vm.resolveClass("android/content/Context").newObject(null);
+            case "android/content/Context->getPackageCodePath()Ljava/lang/String;":
+                return new StringObject(vm, "/data/app/com.netease.unidbgtestdemo-J4DLVxvi6nwuCoHSFmXCAg==/base.apk");
+            case "android/content/Context->getPackageName()Ljava/lang/String;":
+                return new StringObject(vm, "this is fake packget name");
+            case "android/content/Context->getAssets()Landroid/content/res/AssetManager;":
+                return vm.resolveClass("Landroid/content/res/AssetManager").newObject(null);
+            case "Landroid/content/res/AssetManager->toString()Ljava/lang/String;":
+                return new StringObject(vm, "this is fake assets manager string");
+        }
+        return super.callObjectMethodV(vm, dvmObject, signature, vaList);
+    }
 }
