@@ -1110,6 +1110,11 @@ public class ARM64SyscallHandler extends AndroidSyscallHandler {
                 return 0;
             case PR_SET_NO_NEW_PRIVS:
                 return 0;
+            case 4:
+                if (log.isDebugEnabled()) {
+                    log.debug("prctl option: " + 4);
+                }
+                return 0;
         }
         throw new UnsupportedOperationException("option=" + option);
     }

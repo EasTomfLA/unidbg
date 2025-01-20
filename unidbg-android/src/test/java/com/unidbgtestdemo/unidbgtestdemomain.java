@@ -8,8 +8,9 @@ import com.github.unidbg.hook.hookzz.HookZz;
 import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
 import com.github.unidbg.linux.android.AndroidResolver;
 import com.github.unidbg.linux.android.dvm.*;
+import com.github.unidbg.linux.android.dvm.array.ArrayObject;
+import com.github.unidbg.linux.android.dvm.wrapper.DvmInteger;
 import com.github.unidbg.memory.Memory;
-import com.github.unidbg.memory.MemoryBlock;
 import com.github.unidbg.pointer.UnidbgPointer;
 import keystone.Keystone;
 import keystone.KeystoneArchitecture;
@@ -20,6 +21,8 @@ import unicorn.Arm64Const;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class unidbgtestdemomain extends AbstractJni {
     AndroidEmulator emulator;
@@ -84,12 +87,26 @@ public class unidbgtestdemomain extends AbstractJni {
 
     void callMyAddUsingJniMethod() {
         DvmObject<?> demoTest = vm.resolveClass("com/netease/unidbgtestdemo/DemoTest").newObject(null);
-        int sum = demoTest.callJniMethodInt(emulator, "myAdd(II)I", 1, 2);
-        System.out.println("myAdd(1,2)=" + sum);
+        int sum = demoTest.callJniMethodInt(emulator, "myAdd(II)I", 3, 2);
+        System.out.println("myAdd(3,2)=" + sum);
 
-        // ????
-        demoTest = vm.resolveClass("com/netease/unidbgtestdemo/DemoTest").newObject("unidbg");
-        demoTest = vm.resolveClass("com/netease/unidbgtestdemo/DemoTest").newObject(111);
+        Symbol initImpl = module.findSymbolByName("_Z8initImplP7_JNIEnvP7_jclassiP8_jobject");
+        List<Object> params = new ArrayList<>();
+        params.add(vm.getJNIEnv());
+        params.add(0);
+        params.add(1024);
+        StringObject key = new StringObject(vm, "this is fake key");
+        vm.addLocalObject(key);
+        DvmInteger dInt = DvmInteger.valueOf(vm, 0);
+        vm.addLocalObject(dInt);
+        vm.addLocalObject(demoTest);
+        ArrayObject paramArray = new ArrayObject(key, dInt);
+        params.add(vm.addLocalObject(paramArray));
+
+        Number number = module.callFunction(emulator, initImpl.getAddress() - module.base, params.toArray());
+        System.out.println("initImpl ret=" + number);
+        int i = number.intValue();
+        System.out.println("initImpl result:"+ i);
     }
 
     void hookZZ() {
@@ -180,7 +197,7 @@ public class unidbgtestdemomain extends AbstractJni {
 
     public static void main(String[] args) {
         unidbgtestdemomain main = new unidbgtestdemomain();
-        main.hookTest();
+//        main.hookTest();
 //        main.patchCodeTest();
         main.functionCallTest();
     }

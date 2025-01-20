@@ -158,6 +158,9 @@ public abstract class UnixSyscallHandler<T extends NewFileIO> implements Syscall
 
     protected abstract T createByteArrayFileIO(String pathname, int oflags, byte[] data);
 
+    protected long currentTimeMillis() {
+        return 1734346668662L;
+    }
     @SuppressWarnings("unused")
     protected int gettimeofday(Emulator<?> emulator, Pointer tv, Pointer tz) {
         if (log.isDebugEnabled()) {
@@ -174,6 +177,7 @@ public abstract class UnixSyscallHandler<T extends NewFileIO> implements Syscall
         }
 
         long currentTimeMillis = System.currentTimeMillis();
+//        long currentTimeMillis = currentTimeMillis();
         long tv_sec = currentTimeMillis / 1000;
         long tv_usec = (currentTimeMillis % 1000) * 1000;
         TimeVal32 timeVal = new TimeVal32(tv);
@@ -216,6 +220,7 @@ public abstract class UnixSyscallHandler<T extends NewFileIO> implements Syscall
         }
 
         long currentTimeMillis = System.currentTimeMillis();
+//        long currentTimeMillis = currentTimeMillis();
         long tv_sec = currentTimeMillis / 1000;
         long tv_usec = (currentTimeMillis % 1000) * 1000;
         TimeVal64 timeVal = new TimeVal64(tv);
