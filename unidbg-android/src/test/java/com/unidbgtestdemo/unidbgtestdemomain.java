@@ -2,6 +2,9 @@ package com.unidbgtestdemo;
 
 import com.github.unidbg.*;
 import com.github.unidbg.arm.HookStatus;
+import com.github.unidbg.arm.context.RegisterContext;
+import com.github.unidbg.debugger.BreakPointCallback;
+import com.github.unidbg.debugger.Debugger;
 import com.github.unidbg.hook.HookContext;
 import com.github.unidbg.hook.ReplaceCallback;
 import com.github.unidbg.hook.hookzz.HookZz;
@@ -13,6 +16,7 @@ import com.github.unidbg.linux.android.dvm.array.ByteArray;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmInteger;
 import com.github.unidbg.memory.Memory;
 import com.github.unidbg.pointer.UnidbgPointer;
+import com.github.unidbg.utils.Inspector;
 import keystone.Keystone;
 import keystone.KeystoneArchitecture;
 import keystone.KeystoneMode;
@@ -22,10 +26,9 @@ import unicorn.Arm64Const;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
+import java.util.Random;
 
 public class unidbgtestdemomain extends AbstractJni {
     AndroidEmulator emulator;
@@ -117,6 +120,7 @@ public class unidbgtestdemomain extends AbstractJni {
         String inputStr = "helloworld";
         params.add(vm.addLocalObject(new ByteArray(vm, inputStr.getBytes())));
         params.add(0);
+        debugNativeFunc();
         number = module.callFunction(emulator, module.findSymbolByName("Java_com_netease_unidbgtestdemo_DemoTest_encrypt").getAddress() - module.base, params.toArray());
         ByteArray retByteArr = vm.getObject(number.intValue());
 //        String retStr = Base64.getEncoder().encodeToString(retByteArr.getValue());
@@ -162,6 +166,35 @@ public class unidbgtestdemomain extends AbstractJni {
 
     void hookTest() {
         hookZZ();
+    }
+
+    void debugNativeFunc() {
+        Debugger debugger = emulator.attach();
+//        debugger.addBreakPoint(module.findSymbolByName("Java_com_netease_unidbgtestdemo_DemoTest_encrypt").getAddress(),
+//                new BreakPointCallback() {
+//            @Override
+//            public boolean onHit(Emulator<?> emulator, long address) {
+//                return false;
+//            }
+//        });
+        debugger.addBreakPoint(module.findSymbolByName("Java_com_netease_unidbgtestdemo_DemoTest_encrypt").getAddress() + (0x176E8 - 0x1769C),
+                new BreakPointCallback() {
+                    UnidbgPointer pointer;
+                    RegisterContext ctx = emulator.getContext();
+                    @Override
+                    public boolean onHit(Emulator<?> emulator, long address) {
+                        pointer = ctx.getPointerArg(0);
+                        Inspector.inspect(pointer.getByteArray(0, 16), "before");
+                        pointer.setByte(randint(0, 15), (byte)randint(0, 0xff));
+                        Inspector.inspect(pointer.getByteArray(0, 16), "after");
+                        return true;
+                    }
+                });
+    }
+
+    int randint(int min, int max) {
+        Random random = new Random();
+        return random.nextInt((max - min) + 1) + min;
     }
 
     void patchCodeWithPointer() {
