@@ -9,6 +9,7 @@ import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
 import com.github.unidbg.linux.android.AndroidResolver;
 import com.github.unidbg.linux.android.dvm.*;
 import com.github.unidbg.linux.android.dvm.array.ArrayObject;
+import com.github.unidbg.linux.android.dvm.array.ByteArray;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmInteger;
 import com.github.unidbg.memory.Memory;
 import com.github.unidbg.pointer.UnidbgPointer;
@@ -21,7 +22,9 @@ import unicorn.Arm64Const;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 public class unidbgtestdemomain extends AbstractJni {
@@ -90,7 +93,7 @@ public class unidbgtestdemomain extends AbstractJni {
         int sum = demoTest.callJniMethodInt(emulator, "myAdd(II)I", 3, 2);
         System.out.println("myAdd(3,2)=" + sum);
 
-        Symbol initImpl = module.findSymbolByName("_Z8initImplP7_JNIEnvP7_jclassiP8_jobject");
+        Symbol initImpl = module.findSymbolByName("_Z8initImplP7_JNIEnvP7_jclassiP13_jobjectArray");
         List<Object> params = new ArrayList<>();
         params.add(vm.getJNIEnv());
         params.add(0);
@@ -107,6 +110,19 @@ public class unidbgtestdemomain extends AbstractJni {
         System.out.println("initImpl ret=" + number);
         int i = number.intValue();
         System.out.println("initImpl result:"+ i);
+
+        params.clear();
+        params.add(vm.getJNIEnv());
+        params.add(0);
+        String inputStr = "helloworld";
+        params.add(vm.addLocalObject(new ByteArray(vm, inputStr.getBytes())));
+        params.add(0);
+        number = module.callFunction(emulator, module.findSymbolByName("Java_com_netease_unidbgtestdemo_DemoTest_encrypt").getAddress() - module.base, params.toArray());
+        ByteArray retByteArr = vm.getObject(number.intValue());
+//        String retStr = Base64.getEncoder().encodeToString(retByteArr.getValue());
+//        System.out.println("Java_com_netease_unidbgtestdemo_DemoTest_encrypt(\"helloworld\") result:"+ retStr);
+        System.out.println("Java_com_netease_unidbgtestdemo_DemoTest_encrypt(\"helloworld\") input="+ byteArrayToHexString(inputStr.getBytes()));
+        System.out.println("Java_com_netease_unidbgtestdemo_DemoTest_encrypt(\"helloworld\") result="+ byteArrayToHexString(retByteArr.getValue()));
     }
 
     void hookZZ() {
@@ -230,5 +246,17 @@ public class unidbgtestdemomain extends AbstractJni {
                 return new StringObject(vm, "this is fake assets manager string");
         }
         return super.callObjectMethodV(vm, dvmObject, signature, vaList);
+    }
+
+    public static String byteArrayToHexString(byte[] byteArray) {
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : byteArray) {
+            String hex = Integer.toHexString(b & 0xFF);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }
